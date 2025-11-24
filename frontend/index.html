@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRED Portfolio Advisor - Fed Policy Analysis Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.9);
+        }
+        .stance-hawkish { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); }
+        .stance-neutral { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); }
+        .stance-dovish { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); }
+        .pulse-animation {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .7; }
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">FRED Portfolio Advisor</h1>
+                    <p class="text-sm text-gray-600 mt-1">Federal Reserve Policy Analysis & Portfolio Strategy</p>
+                </div>
+                <div class="text-right">
+                    <div class="text-sm text-gray-500" id="lastUpdate">Loading...</div>
+                    <button onclick="refreshData()" class="mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                        🔄 Refresh Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center py-20">
+            <div class="inline-block animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600"></div>
+            <p class="mt-4 text-gray-600 text-lg">Loading Fed policy data...</p>
+        </div>
+
+        <!-- Main Dashboard (Hidden until loaded) -->
+        <div id="dashboard" class="hidden">
+            <!-- Hero Section - Executive Summary -->
+            <section class="mb-8">
+                <div id="heroCard" class="rounded-2xl shadow-xl p-8 text-center stance-neutral">
+                    <div class="flex justify-center items-center gap-4 mb-4">
+                        <div class="text-6xl" id="stanceEmoji">🟡</div>
+                        <div class="text-left">
+                            <h2 class="text-4xl font-bold text-gray-800" id="stanceTitle">Neutral</h2>
+                            <p class="text-lg text-gray-700" id="stanceDescription">Loading...</p>
+                        </div>
+                    </div>
+                    <p class="text-xl text-gray-800 font-medium max-w-4xl mx-auto" id="executiveSummary">Loading executive summary...</p>
+                    <div class="mt-6 flex justify-center gap-8">
+                        <div class="text-center">
+                            <div class="text-4xl font-bold text-gray-800" id="fedFundsRate">--</div>
+                            <div class="text-sm text-gray-600 mt-1">Fed Funds Rate</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-4xl font-bold text-gray-800" id="inflationRate">--</div>
+                            <div class="text-sm text-gray-600 mt-1">Inflation Rate</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Economic Indicators Grid -->
+            <section class="mb-8">
+                <h3 class="text-2xl font-bold text-gray-900 mb-4">Key Economic Indicators</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="indicatorsGrid">
+                    <!-- Indicators will be populated here -->
+                </div>
+            </section>
+
+            <!-- Charts Section -->
+            <section class="mb-8">
+                <h3 class="text-2xl font-bold text-gray-900 mb-4">Historical Analysis</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-4">Interest Rates Trend</h4>
+                        <canvas id="ratesChart"></canvas>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-4">Yield Curve Analysis</h4>
+                        <div id="yieldCurveInfo" class="space-y-4">
+                            <!-- Yield curve info here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Portfolio Recommendation Section -->
+            <section class="mb-8">
+                <h3 class="text-2xl font-bold text-gray-900 mb-4">Portfolio Strategy Recommendation</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Main Recommendation -->
+                    <div class="lg:col-span-2 bg-white rounded-xl shadow-lg p-6 card-hover">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h4 class="text-2xl font-bold text-gray-900" id="strategyName">Loading...</h4>
+                                <div class="flex gap-4 mt-2">
+                                    <span class="text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium" id="riskLevel">--</span>
+                                    <span class="text-sm px-3 py-1 bg-gray-100 text-gray-800 rounded-full font-medium" id="timeframe">--</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-gray-700 mb-6" id="strategyRationale">Loading rationale...</p>
+
+                        <h5 class="font-semibold text-gray-900 mb-3">Key Actions:</h5>
+                        <ul class="space-y-2 mb-6" id="keyActions">
+                            <!-- Actions will be populated here -->
+                        </ul>
+
+                        <h5 class="font-semibold text-gray-900 mb-3">Recommended Allocation:</h5>
+                        <div id="allocationBars" class="space-y-3">
+                            <!-- Allocation bars will be populated here -->
+                        </div>
+                    </div>
+
+                    <!-- Asset Class Outlook -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                        <h4 class="text-lg font-bold text-gray-900 mb-4">Asset Class Outlook</h4>
+                        <div id="assetOutlook" class="space-y-4">
+                            <!-- Asset outlook will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Alternative Scenarios -->
+            <section class="mb-8">
+                <h3 class="text-2xl font-bold text-gray-900 mb-4">Alternative Scenarios</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="scenariosGrid">
+                    <!-- Scenarios will be populated here -->
+                </div>
+            </section>
+
+            <!-- Export Section -->
+            <section class="mb-8">
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg p-8 text-center text-white">
+                    <h3 class="text-2xl font-bold mb-2">Ready for Your Client Presentation?</h3>
+                    <p class="mb-6 text-blue-100">Export this analysis for your presentation materials</p>
+                    <button onclick="exportReport()" class="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition">
+                        📊 Generate Presentation Report
+                    </button>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="bg-white shadow-lg mt-12 py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-600">
+            <p>Data provided by Federal Reserve Economic Data (FRED) • Updated in real-time</p>
+            <p class="text-sm mt-2">Built for professional portfolio analysis and client presentations</p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
