@@ -288,7 +288,6 @@ if __name__ == '__main__':
     print("=" * 60)
     print("FRED Portfolio Advisor API")
     print("=" * 60)
-    print("\nStarting server...")
     print("\nAPI Endpoints:")
     print("  GET  /                              - Health check")
     print("  GET  /api/indicators                - Current indicators")
